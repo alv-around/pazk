@@ -26,7 +26,7 @@ dependencies = [
  "ark-std",
  "derivative",
  "digest",
- "itertools",
+ "itertools 0.10.5",
  "num-bigint",
  "num-traits",
  "paste",
@@ -186,6 +186,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "num-bigint"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -299,6 +308,8 @@ version = "0.1.0"
 dependencies = [
  "ark-ff",
  "ark-poly",
+ "ark-std",
+ "itertools 0.13.0",
 ]
 
 [[package]]
