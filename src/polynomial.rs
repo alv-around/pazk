@@ -5,13 +5,14 @@ use ark_poly::{
 };
 use itertools::{Either, Itertools};
 
+type Factor = (usize, usize);
+
 /// Assigns a value to an specific variable of the polynomial
-fn assign_value<F: Field>(
+pub fn assign_value<F: Field>(
     polynomial: SparsePolynomial<F, SparseTerm>,
     variable: usize,
     value: F,
 ) -> SparsePolynomial<F, SparseTerm> {
-    type Factor = (usize, usize);
     assert!(
         variable < polynomial.num_vars,
         "Invalid variable: index has to be in range [0 , .. , i-1]"
@@ -36,6 +37,17 @@ fn assign_value<F: Field>(
     SparsePolynomial::from_coefficients_vec(polynomial.num_vars, new_terms)
 }
 
+pub fn assign_values<F: Field>(
+    polynomial: &SparsePolynomial<F, SparseTerm>,
+    values: Vec<(usize, F)>,
+) -> SparsePolynomial<F, SparseTerm> {
+    let mut reduced_polynomial = polynomial.clone();
+    for (variable, value) in values {
+        reduced_polynomial = assign_value(reduced_polynomial, variable, value);
+    }
+    reduced_polynomial
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -53,7 +65,7 @@ mod test {
     /// Thaler's Chp. 4
     fn setup() -> SparsePolynomial<F17, SparseTerm> {
         // Create a multivariate polynomial in 3 variables, with 4 terms:
-        // /// // 2*x_0^3 + x_0*x_2 + x_1*x_2
+        // 2*x_0^3 + x_0*x_2 + x_1*x_2
         SparsePolynomial::from_coefficients_vec(
             3,
             vec![
@@ -91,6 +103,19 @@ mod test {
             ],
         );
         let poly_reduced = assign_value(poly, 2, F17::from(1));
+        assert_eq!(should, poly_reduced);
+    }
+
+    #[test]
+    fn test_assign_multiple_variables() {
+        // 2*x_0^3 + x_0*x_2 + x_1*x_2
+        let poly = setup();
+        let should = SparsePolynomial::from_coefficients_vec(
+            3,
+            vec![(F17::from(4), SparseTerm::new(vec![]))],
+        );
+        let values = vec![(0, F17::from(1)), (1, F17::from(1)), (2, F17::from(1))];
+        let poly_reduced = assign_values(&poly, values);
         assert_eq!(should, poly_reduced);
     }
 }
