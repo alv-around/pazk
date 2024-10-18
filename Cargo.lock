@@ -280,6 +280,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
+name = "pazk"
+version = "0.1.0"
+dependencies = [
+ "ark-ff",
+ "ark-poly",
+ "ark-std",
+ "ark-test-curves",
+ "itertools 0.13.0",
+ "rand",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -350,18 +362,6 @@ name = "semver"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
-
-[[package]]
-name = "snargs"
-version = "0.1.0"
-dependencies = [
- "ark-ff",
- "ark-poly",
- "ark-std",
- "ark-test-curves",
- "itertools 0.13.0",
- "rand",
-]
 
 [[package]]
 name = "syn"

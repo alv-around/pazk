@@ -2,7 +2,7 @@ use ark_ff::fields::{Fp64, MontBackend, MontConfig};
 use ark_poly::multivariate::Term;
 use ark_poly::multivariate::{SparsePolynomial, SparseTerm};
 use ark_poly::DenseMVPolynomial;
-use snargs::sumcheck::{Prover, Verifier};
+use pazk::sumcheck::{Prover, Verifier};
 
 #[derive(MontConfig)]
 #[modulus = "17"]
