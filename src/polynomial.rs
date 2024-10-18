@@ -1,9 +1,11 @@
 use ark_ff::Field;
 use ark_poly::{
     multivariate::{SparsePolynomial, SparseTerm, Term},
+    univariate::SparsePolynomial as UnivariatePolynomial,
     DenseMVPolynomial,
 };
 use itertools::{Either, Itertools};
+use std::collections::HashSet;
 
 type Factor = (usize, usize);
 
@@ -24,7 +26,8 @@ pub fn assign_value<F: Field>(
         let (matches, failure): (Vec<Factor>, Vec<Factor>) =
             term.iter().partition_map(|r| match r {
                 (var, _power) if *var == variable => Either::Left(r),
-                _ => Either::Right(r),
+                (var, power) if *var > variable => Either::Right((*var - 1, *power)),
+                _ => Either::Right(*r),
             });
 
         let new_coeff: F = matches
@@ -34,20 +37,54 @@ pub fn assign_value<F: Field>(
     }
 
     // num_vars remain the same, otherwise variables must be reindex
-    SparsePolynomial::from_coefficients_vec(polynomial.num_vars, new_terms)
+    SparsePolynomial::from_coefficients_vec(polynomial.num_vars - 1, new_terms)
 }
 
-pub fn assign_values<F: Field>(
+fn assign_values<F: Field>(
     polynomial: &SparsePolynomial<F, SparseTerm>,
     values: Vec<(usize, F)>,
 ) -> SparsePolynomial<F, SparseTerm> {
     let mut reduced_polynomial = polynomial.clone();
-    for (variable, value) in values {
-        reduced_polynomial = assign_value(reduced_polynomial, variable, value);
+    let rev_sorted_values = values.iter().sorted_by(|a, b| Ord::cmp(&b.0, &a.0));
+    for (variable, value) in rev_sorted_values {
+        reduced_polynomial = assign_value(reduced_polynomial, *variable, *value);
     }
     reduced_polynomial
 }
 
+pub fn reduced_to_univariate<F: Field>(
+    mvpoly: &SparsePolynomial<F, SparseTerm>,
+    values: Vec<(usize, F)>,
+) -> SparsePolynomial<F, SparseTerm> {
+    let mut variables = HashSet::new();
+    for (var, _value) in &values {
+        variables.insert(var); // Insert the key into the HashSet, ensuring uniqueness
+    }
+
+    assert_eq!(
+        variables.len(),
+        mvpoly.num_vars - 1,
+        "provide values for d-1 variables, where d is the number of variables in the given multivariate polynomial"
+    );
+
+    assign_values(mvpoly, values)
+}
+
+pub fn cast_mv_to_uv_polynomial<F: Field>(
+    single_var_mv_poly: SparsePolynomial<F, SparseTerm>,
+) -> UnivariatePolynomial<F> {
+    assert_eq!(single_var_mv_poly.num_vars, 1);
+    let mut univariate_terms: Vec<(usize, F)> = Vec::new();
+    // Iterate through the terms of the multivariate polynomial
+    for (coeff, term) in single_var_mv_poly.terms {
+        // Check if the term involves the desired variable
+        match term.first() {
+            Some((_, exp)) => univariate_terms.push((*exp, coeff)),
+            None => univariate_terms.push((0, coeff)),
+        }
+    }
+    UnivariatePolynomial::from_coefficients_vec(univariate_terms)
+}
 #[cfg(test)]
 mod test {
     use super::*;
@@ -80,11 +117,11 @@ mod test {
     fn test_assign_first_variable() {
         let poly = setup();
         let should = SparsePolynomial::from_coefficients_vec(
-            3,
+            2,
             vec![
                 (F17::from(2), SparseTerm::new(vec![])),
-                (F17::from(1), SparseTerm::new(vec![(2, 1)])),
-                (F17::from(1), SparseTerm::new(vec![(1, 1), (2, 1)])),
+                (F17::from(1), SparseTerm::new(vec![(1, 1)])),
+                (F17::from(1), SparseTerm::new(vec![(0, 1), (1, 1)])),
             ],
         );
         let poly_reduced = assign_value(poly, 0, F17::from(1));
@@ -111,7 +148,7 @@ mod test {
         // 2*x_0^3 + x_0*x_2 + x_1*x_2
         let poly = setup();
         let should = SparsePolynomial::from_coefficients_vec(
-            3,
+            0,
             vec![(F17::from(4), SparseTerm::new(vec![]))],
         );
         let values = vec![(0, F17::from(1)), (1, F17::from(1)), (2, F17::from(1))];

@@ -1,5 +1,5 @@
 pub mod polynomial;
-// pub mod sumcheck;
+pub mod sumcheck;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
