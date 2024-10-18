@@ -25,18 +25,19 @@ impl<F: Field> Verifier<F> {
             poly,
             running_poly: UnivariatePolynomial::<F>::zero(),
             total_rounds,
-            actual_round: 1,
+            actual_round: 0,
             rs: Vec::with_capacity(total_rounds),
         }
     }
 
     pub fn verify_round(&mut self, round_poly: UnivariatePolynomial<F>) -> F {
-        if self.actual_round < 1 {
-            panic!("Invalid round number");
-        }
+        assert!(
+            self.actual_round < self.total_rounds,
+            "Invalid round number"
+        );
 
         let round_value = round_poly.evaluate(&F::ZERO) + round_poly.evaluate(&F::ONE);
-        if self.actual_round == 1 {
+        if self.actual_round == 0 {
             assert_eq!(round_value, self.solution);
         } else {
             assert_eq!(
@@ -50,7 +51,7 @@ impl<F: Field> Verifier<F> {
         self.rs.push(field);
         self.running_poly = round_poly;
 
-        if self.actual_round == self.total_rounds + 1 {
+        if self.actual_round == self.total_rounds {
             assert_eq!(
                 self.running_poly.evaluate(&field),
                 self.poly.evaluate(&self.rs)
@@ -75,7 +76,7 @@ impl<F: Field> Prover<F> {
         Prover {
             poly,
             total_rounds,
-            actual_round: 1,
+            actual_round: 0,
             rs: Vec::with_capacity(total_rounds),
         }
     }
@@ -104,7 +105,7 @@ impl<F: Field> Prover<F> {
 
     pub fn calculate_round_poly(&self) -> UnivariatePolynomial<F> {
         let mut round_poly = SparsePolynomial::<F, SparseTerm>::zero();
-        let remaining_rounds = self.total_rounds - self.actual_round;
+        let remaining_rounds = self.total_rounds - self.actual_round - 1;
         for i in 0..(1 << remaining_rounds) {
             let binary: Vec<F> = Prover::number_to_domain(i, remaining_rounds);
             let values = std::iter::zip(1..=remaining_rounds, binary).collect();
@@ -194,7 +195,7 @@ mod tests {
         let rand_field = F17::from(2);
         let mut verifier = Verifier {
             total_rounds: 3,
-            actual_round: 2,
+            actual_round: 1,
             poly,
             rs: vec![rand_field],
             solution: F17::from(12),
@@ -223,7 +224,7 @@ mod tests {
 
         let mut verifier = Verifier {
             total_rounds: 3,
-            actual_round: 3,
+            actual_round: 2,
             running_poly: s2,
             poly,
             solution: F17::from(12),
