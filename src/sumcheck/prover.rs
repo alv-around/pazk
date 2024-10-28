@@ -7,18 +7,18 @@ use ark_poly::{
     Polynomial,
 };
 
-pub struct Prover<F: Field> {
+pub struct ProverState<F: Field> {
     poly: SparsePolynomial<F, SparseTerm>, // Use concrete type
     total_rounds: usize,
     actual_round: usize,
     rs: Vec<F>,
 }
 
-impl<F: Field> Prover<F> {
+impl<F: Field> ProverState<F> {
     pub fn new(poly: SparsePolynomial<F, SparseTerm>) -> Self {
         // Accept concrete type
         let total_rounds = poly.num_vars();
-        Prover {
+        ProverState {
             poly,
             total_rounds,
             actual_round: 0,
@@ -42,7 +42,7 @@ impl<F: Field> Prover<F> {
     pub fn calculate_sum(&self) -> F {
         let mut result = F::ZERO;
         for i in 0..(1 << self.total_rounds) {
-            let binary = Prover::number_to_domain(i, self.total_rounds);
+            let binary = ProverState::number_to_domain(i, self.total_rounds);
             result += self.poly.evaluate(&binary);
         }
         result
@@ -52,7 +52,7 @@ impl<F: Field> Prover<F> {
         let mut round_poly = SparsePolynomial::<F, SparseTerm>::zero();
         let remaining_rounds = self.total_rounds - self.actual_round - 1;
         for i in 0..(1 << remaining_rounds) {
-            let binary: Vec<F> = Prover::number_to_domain(i, remaining_rounds);
+            let binary: Vec<F> = ProverState::number_to_domain(i, remaining_rounds);
             let values = std::iter::zip(1..=remaining_rounds, binary).collect();
             round_poly += &reduced_to_univariate(&self.poly, values);
         }
@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn test_prover_calculate_sum() {
         let poly = setup();
-        let prover = Prover::new(poly);
+        let prover = ProverState::new(poly);
         let solution = prover.calculate_sum();
         assert_eq!(solution, F17::from(12));
 

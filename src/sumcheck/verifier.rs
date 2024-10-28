@@ -6,7 +6,7 @@ use ark_poly::{
 };
 use ark_std::test_rng;
 
-pub struct Verifier<F: Field> {
+pub struct VerifierState<F: Field> {
     solution: F,
     poly: SparsePolynomial<F, SparseTerm>,
     total_rounds: usize,
@@ -15,10 +15,10 @@ pub struct Verifier<F: Field> {
     rs: Vec<F>,
 }
 
-impl<F: Field> Verifier<F> {
+impl<F: Field> VerifierState<F> {
     pub fn new(result: F, poly: SparsePolynomial<F, SparseTerm>) -> Self {
         let total_rounds = poly.num_vars;
-        Verifier {
+        VerifierState {
             solution: result,
             poly,
             running_poly: UnivariatePolynomial::<F>::zero(),
@@ -63,7 +63,7 @@ impl<F: Field> Verifier<F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sumcheck::Prover;
+    use crate::sumcheck::ProverState;
     use ark_ff::fields::{Fp64, MontBackend, MontConfig};
     use ark_poly::{multivariate::Term, DenseMVPolynomial};
 
@@ -91,8 +91,8 @@ mod tests {
     #[test]
     fn test_verifier_verify_round() {
         let poly = setup();
-        let prover = Prover::new(poly.clone());
-        let mut verifier = Verifier::new(F17::from(12), poly);
+        let prover = ProverState::new(poly.clone());
+        let mut verifier = VerifierState::new(F17::from(12), poly);
         let round1_poly = prover.calculate_round_poly();
         let should_poly = UnivariatePolynomial::from_coefficients_vec(vec![
             (3, F17::from(8)),
@@ -107,7 +107,7 @@ mod tests {
     #[should_panic]
     fn test_verifier_wrong_poly() {
         let poly = setup();
-        let mut verifier = Verifier::new(F17::from(12), poly);
+        let mut verifier = VerifierState::new(F17::from(12), poly);
         let random_poly =
             UnivariatePolynomial::from_coefficients_vec(vec![(2, F17::from(1)), (0, F17::from(1))]);
         verifier.verify_round(random_poly);
@@ -116,10 +116,10 @@ mod tests {
     #[test]
     fn test_prover_verifier_interaction_ith_round() {
         let poly = setup();
-        let mut prover = Prover::new(poly.clone());
+        let mut prover = ProverState::new(poly.clone());
 
         let rand_field = F17::from(2);
-        let mut verifier = Verifier {
+        let mut verifier = VerifierState {
             total_rounds: 3,
             actual_round: 1,
             poly,
@@ -142,13 +142,13 @@ mod tests {
     fn test_verifier_final_round() {
         let poly = setup();
         let rs = vec![F17::from(2), F17::from(3)];
-        let mut prover = Prover::new(poly.clone());
+        let mut prover = ProverState::new(poly.clone());
         prover.update_random_vars(rs[0]);
         let s2 = prover.calculate_round_poly();
         prover.update_random_vars(rs[1]);
         let s3 = prover.calculate_round_poly();
 
-        let mut verifier = Verifier {
+        let mut verifier = VerifierState {
             total_rounds: 3,
             actual_round: 2,
             running_poly: s2,
