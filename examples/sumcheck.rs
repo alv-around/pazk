@@ -21,7 +21,6 @@ fn main() {
         ],
     );
 
-    // TODO: add RC to polynomial
     let mut prover = Prover::new(example_polynomial.clone());
     let mut verifier = Verifier::new(prover.calculate_sum(), example_polynomial);
 
