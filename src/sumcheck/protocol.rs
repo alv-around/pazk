@@ -49,8 +49,8 @@ impl<F: Field> Prover<F> {
     }
 
     pub async fn prove(&mut self) {
-        match self.rx.recv().await {
-            Some(message) => match message {
+        if let Some(message) = self.rx.recv().await {
+            match message {
                 VerifierMessage::Confirmation => {
                     let univariate_poly = self.state.calculate_round_poly();
                     self.tx.send(ProverMessage::Argument(univariate_poly));
@@ -66,8 +66,7 @@ impl<F: Field> Prover<F> {
                 VerifierMessage::Failure(err_message) => {
                     println!("Verification failed: {}", err_message);
                 }
-            },
-            None => (),
+            }
         }
     }
 }
@@ -126,9 +125,8 @@ impl<F: Field> Verifier<F> {
             None => VerifierMessage::Failure("Nothing to verify".to_string()),
         };
 
-        match &self.tx {
-            Some(tx) => tx.send(message).expect("Communication Failure"),
-            None => (),
+        if let Some(tx) = &self.tx {
+            tx.send(message).expect("Communication Failure");
         }
     }
 }

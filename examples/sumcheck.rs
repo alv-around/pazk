@@ -2,7 +2,8 @@ use ark_ff::fields::{Fp64, MontBackend, MontConfig};
 use ark_poly::multivariate::Term;
 use ark_poly::multivariate::{SparsePolynomial, SparseTerm};
 use ark_poly::DenseMVPolynomial;
-use pazk::sumcheck::{Prover, Verifier};
+use pazk::sumcheck::{Prover, ProverMessage, Verifier, VerifierMessage};
+use trpl::{self, Receiver, Sender};
 
 #[derive(MontConfig)]
 #[modulus = "17"]
@@ -21,22 +22,18 @@ fn main() {
         ],
     );
 
-    let mut prover = Prover::new(example_polynomial.clone());
-    let mut verifier = Verifier::new(prover.calculate_sum(), example_polynomial);
+    let (prover_tx, verifier_rx): (Sender<ProverMessage<F17>>, Receiver<ProverMessage<F17>>) =
+        trpl::channel();
+    let mut verifier = Verifier::new(verifier_rx);
+    let mut prover = Prover::new(prover_tx, example_polynomial);
 
-    // TODO: add channel communication between Verifier and Prover
-
-    // round 1
-    let s1 = prover.calculate_round_poly();
-    let r1 = verifier.verify_round(s1);
-    prover.update_random_vars(r1);
-
-    // round 2
-    let s2 = prover.calculate_round_poly();
-    let r2 = verifier.verify_round(s2);
-    prover.update_random_vars(r2);
-
-    // final round
-    let s3 = prover.calculate_round_poly();
-    verifier.verify_round(s3);
+    trpl::run(async {
+        verifier.listen().await;
+        prover.prove().await;
+        verifier.listen().await;
+        prover.prove().await;
+        verifier.listen().await;
+        prover.prove().await;
+        verifier.listen().await;
+    })
 }
