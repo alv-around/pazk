@@ -1,5 +1,7 @@
-pub mod prover;
-pub mod verifier;
+mod protocol;
+mod prover;
+mod verifier;
 
-pub use prover::Prover;
-pub use verifier::Verifier;
+pub use protocol::{Prover, ProverMessage, Verifier, VerifierMessage};
+pub use prover::ProverState;
+pub use verifier::VerifierState;
