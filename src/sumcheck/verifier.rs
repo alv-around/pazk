@@ -28,7 +28,16 @@ impl<F: Field> VerifierState<F> {
         }
     }
 
+    pub fn get_total_rounds(&self) -> usize {
+        self.total_rounds
+    }
+
+    pub fn get_actual_rounds(&self) -> usize {
+        self.actual_round
+    }
+
     pub fn verify_round(&mut self, round_poly: UnivariatePolynomial<F>) -> F {
+        // TODO: Improve Error handling with result
         assert!(
             self.actual_round < self.total_rounds,
             "Invalid round number"

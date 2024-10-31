@@ -3,6 +3,7 @@ use crate::sumcheck::VerifierState;
 use ark_ff::Field;
 use ark_poly::multivariate::{SparsePolynomial, SparseTerm};
 use ark_poly::univariate::SparsePolynomial as UnivariatePolynomial;
+use std::cmp::Ordering;
 use trpl::{self, Receiver, Sender};
 
 pub enum ProverMessage<F: Field> {
@@ -53,12 +54,16 @@ impl<F: Field> Prover<F> {
             match message {
                 VerifierMessage::Confirmation => {
                     let univariate_poly = self.state.calculate_round_poly();
-                    self.tx.send(ProverMessage::Argument(univariate_poly));
+                    self.tx
+                        .send(ProverMessage::Argument(univariate_poly))
+                        .expect("Communication Error");
                 }
                 VerifierMessage::Ok(random_challenge) => {
                     self.state.update_random_vars(random_challenge);
                     let univariate_poly = self.state.calculate_round_poly();
-                    self.tx.send(ProverMessage::Argument(univariate_poly));
+                    self.tx
+                        .send(ProverMessage::Argument(univariate_poly))
+                        .expect("Communication Error");
                 }
                 VerifierMessage::Sucess => {
                     println!("Verification Succeded!!");
@@ -108,25 +113,29 @@ impl<F: Field> Verifier<F> {
         if self.tx.is_some() || self.state.is_some() {
             tx.send(VerifierMessage::Failure(
                 "Other verification taking place".to_string(),
-            ));
+            ))
+            .expect("Communication Failure");
         } else {
-            tx.send(VerifierMessage::Confirmation);
+            tx.send(VerifierMessage::Confirmation)
+                .expect("Communication Failure");
             self.tx = Some(tx);
             self.state = Some(VerifierState::new(solution, poly));
         }
     }
 
     fn verify_step(&mut self, univariate_poly: UnivariatePolynomial<F>) {
-        let message = match &mut self.state {
-            Some(state) => {
-                let random_challenge = state.verify_round(univariate_poly);
-                VerifierMessage::Ok(random_challenge)
-            }
-            None => VerifierMessage::Failure("Nothing to verify".to_string()),
-        };
+        if let Some(state) = &mut self.state {
+            let random_challenge = state.verify_round(univariate_poly);
+            let total_rounds = state.get_total_rounds();
+            let message = match state.get_actual_rounds().cmp(&total_rounds) {
+                Ordering::Equal => VerifierMessage::Sucess,
+                Ordering::Less => VerifierMessage::Ok(random_challenge),
+                Ordering::Greater => VerifierMessage::Failure("Invalid State".to_string()),
+            };
 
-        if let Some(tx) = &self.tx {
-            tx.send(message).expect("Communication Failure");
-        }
+            if let Some(tx) = &self.tx {
+                tx.send(message).expect("Communication Error");
+            }
+        };
     }
 }

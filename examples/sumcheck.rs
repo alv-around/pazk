@@ -2,7 +2,7 @@ use ark_ff::fields::{Fp64, MontBackend, MontConfig};
 use ark_poly::multivariate::Term;
 use ark_poly::multivariate::{SparsePolynomial, SparseTerm};
 use ark_poly::DenseMVPolynomial;
-use pazk::sumcheck::{Prover, ProverMessage, Verifier, VerifierMessage};
+use pazk::sumcheck::{Prover, ProverMessage, Verifier};
 use trpl::{self, Receiver, Sender};
 
 #[derive(MontConfig)]
@@ -35,5 +35,6 @@ fn main() {
         verifier.listen().await;
         prover.prove().await;
         verifier.listen().await;
+        prover.prove().await;
     })
 }
