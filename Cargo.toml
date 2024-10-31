@@ -11,3 +11,4 @@ itertools = "0.13.0"
 trpl = "0.2.0"
 
 [dev-dependencies]
+ark-test-curves = { version = "0.4.2", features = ["bls12_381_curve"] }
