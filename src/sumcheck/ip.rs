@@ -1,5 +1,5 @@
-use crate::sumcheck::ProverState;
-use crate::sumcheck::VerifierState;
+use crate::sumcheck::prover::ProverState;
+use crate::sumcheck::verifier::VerifierState;
 use ark_ff::Field;
 use ark_poly::multivariate::{SparsePolynomial, SparseTerm};
 use ark_poly::univariate::SparsePolynomial as UnivariatePolynomial;

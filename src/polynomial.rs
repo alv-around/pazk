@@ -20,9 +20,8 @@ pub fn assign_value<F: Field>(
         "Invalid variable: index has to be in range [0 , .. , i-1]"
     );
 
-    let terms = polynomial.terms;
     let mut new_terms = vec![];
-    for (coeff, term) in terms {
+    for (coeff, term) in polynomial.terms {
         let (matches, failure): (Vec<Factor>, Vec<Factor>) =
             term.iter().partition_map(|r| match r {
                 (var, _power) if *var == variable => Either::Left(r),

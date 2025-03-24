@@ -1,7 +1,5 @@
-mod protocol;
+mod fiat_shamir;
+pub mod ip;
+pub mod non_interactive;
 mod prover;
 mod verifier;
-
-pub use protocol::{Prover, ProverMessage, Verifier, VerifierMessage};
-pub use prover::ProverState;
-pub use verifier::VerifierState;

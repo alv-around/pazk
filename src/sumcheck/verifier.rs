@@ -72,7 +72,7 @@ impl<F: Field> VerifierState<F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sumcheck::ProverState;
+    use crate::sumcheck::prover::ProverState;
     use ark_ff::fields::{Fp64, MontBackend, MontConfig};
     use ark_poly::{multivariate::Term, DenseMVPolynomial};
 

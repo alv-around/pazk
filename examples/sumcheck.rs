@@ -2,7 +2,7 @@ use ark_ff::fields::{Fp64, MontBackend, MontConfig};
 use ark_poly::multivariate::Term;
 use ark_poly::multivariate::{SparsePolynomial, SparseTerm};
 use ark_poly::DenseMVPolynomial;
-use pazk::sumcheck::{Prover, ProverMessage, Verifier};
+use pazk::sumcheck::ip::{Prover, ProverMessage, Verifier};
 use trpl::{self, Receiver, Sender};
 
 #[derive(MontConfig)]
@@ -17,7 +17,7 @@ fn main() {
         3,
         vec![
             (F17::from(2), SparseTerm::new(vec![(0, 3)])),
-            (F17::from(1), SparseTerm::new(vec![(0, 1), (1, 1)])),
+            (F17::from(1), SparseTerm::new(vec![(0, 1), (2, 1)])),
             (F17::from(1), SparseTerm::new(vec![(1, 1), (2, 1)])),
         ],
     );

@@ -9,7 +9,7 @@ use ark_poly::{
 
 pub struct ProverState<F: Field> {
     poly: SparsePolynomial<F, SparseTerm>, // Use concrete type
-    total_rounds: usize,
+    pub(crate) total_rounds: usize,
     actual_round: usize,
     rs: Vec<F>,
 }
@@ -69,7 +69,10 @@ impl<F: Field> ProverState<F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::fields::{Fp64, MontBackend, MontConfig};
+    use ark_ff::{
+        fields::{Fp64, MontBackend, MontConfig},
+        AdditiveGroup,
+    };
     use ark_poly::multivariate::Term;
 
     #[derive(MontConfig)]
