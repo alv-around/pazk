@@ -4,7 +4,8 @@ use ark_poly::{
     multivariate::{SparsePolynomial, SparseTerm},
     Polynomial,
 };
-use ark_std::test_rng;
+
+use rand::Rng;
 
 pub struct VerifierState<F: Field> {
     solution: F,
@@ -36,7 +37,7 @@ impl<F: Field> VerifierState<F> {
         self.actual_round
     }
 
-    pub fn verify_round(&mut self, round_poly: UnivariatePolynomial<F>) -> F {
+    pub fn verify_round_poly(&mut self, round_poly: UnivariatePolynomial<F>) {
         // TODO: Improve Error handling with result
         assert!(
             self.actual_round < self.total_rounds,
@@ -52,20 +53,24 @@ impl<F: Field> VerifierState<F> {
                 self.running_poly.evaluate(self.rs.last().unwrap())
             );
         }
-
         self.actual_round += 1;
-        let field = F::rand(&mut test_rng());
-        self.rs.push(field);
         self.running_poly = round_poly;
+    }
 
+    pub fn finish_round(&mut self, field: F) {
+        self.rs.push(field);
+    }
+
+    pub fn finish_protocol(&self) {
         if self.actual_round == self.total_rounds {
+            let field = self.rs[self.total_rounds - 1];
             assert_eq!(
                 self.running_poly.evaluate(&field),
                 self.poly.evaluate(&self.rs)
             );
+        } else {
+            panic!("function called at wrong time");
         }
-
-        field
     }
 }
 
@@ -109,7 +114,7 @@ mod tests {
             (0, F17::from(1)),
         ]);
         assert_eq!(round1_poly, should_poly);
-        verifier.verify_round(round1_poly);
+        verifier.verify_round_poly(round1_poly);
     }
 
     #[test]
@@ -119,7 +124,7 @@ mod tests {
         let mut verifier = VerifierState::new(F17::from(12), poly);
         let random_poly =
             UnivariatePolynomial::from_coefficients_vec(vec![(2, F17::from(1)), (0, F17::from(1))]);
-        verifier.verify_round(random_poly);
+        verifier.verify_round_poly(random_poly);
     }
 
     #[test]
@@ -132,7 +137,7 @@ mod tests {
             total_rounds: 3,
             actual_round: 1,
             poly,
-            rs: vec![rand_field],
+            rs: vec![],
             solution: F17::from(12),
             running_poly: UnivariatePolynomial::from_coefficients_vec(vec![
                 (3, F17::from(8)),
@@ -140,11 +145,13 @@ mod tests {
                 (0, F17::from(1)),
             ]),
         };
+        verifier.finish_round(rand_field);
+
         prover.update_random_vars(rand_field);
         let round2_poly = prover.calculate_round_poly();
         let should_poly = UnivariatePolynomial::from_coefficients_vec(vec![(1, F17::from(1))]);
         assert_eq!(round2_poly, should_poly);
-        verifier.verify_round(round2_poly);
+        verifier.verify_round_poly(round2_poly);
     }
 
     #[test]
@@ -166,6 +173,6 @@ mod tests {
             rs,
         };
 
-        verifier.verify_round(s3);
+        verifier.verify_round_poly(s3);
     }
 }

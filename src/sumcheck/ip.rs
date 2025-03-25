@@ -3,6 +3,7 @@ use crate::sumcheck::verifier::VerifierState;
 use ark_ff::Field;
 use ark_poly::multivariate::{SparsePolynomial, SparseTerm};
 use ark_poly::univariate::SparsePolynomial as UnivariatePolynomial;
+use ark_std::test_rng;
 use std::cmp::Ordering;
 use trpl::{self, Receiver, Sender};
 
@@ -125,10 +126,15 @@ impl<F: Field> Verifier<F> {
 
     fn verify_step(&mut self, univariate_poly: UnivariatePolynomial<F>) {
         if let Some(state) = &mut self.state {
-            let random_challenge = state.verify_round(univariate_poly);
+            state.verify_round_poly(univariate_poly);
+            let random_challenge = F::rand(&mut test_rng());
+            state.finish_round(random_challenge);
             let total_rounds = state.get_total_rounds();
             let message = match state.get_actual_rounds().cmp(&total_rounds) {
-                Ordering::Equal => VerifierMessage::Sucess,
+                Ordering::Equal => {
+                    state.finish_protocol();
+                    VerifierMessage::Sucess
+                }
                 Ordering::Less => VerifierMessage::Ok(random_challenge),
                 Ordering::Greater => VerifierMessage::Failure("Invalid State".to_string()),
             };

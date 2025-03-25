@@ -1,17 +1,20 @@
 use super::prover::ProverState;
+use super::verifier::VerifierState;
 use ark_ff::Field;
 use ark_poly::{
     multivariate::{SparsePolynomial, SparseTerm},
+    univariate::SparsePolynomial as UnivariatePoly,
     Polynomial,
 };
 use nimue::{
     plugins::ark::{FieldChallenges, FieldWriter},
-    DuplexHash, Merlin,
+    DuplexHash, IOPattern, Merlin,
 };
 
 pub struct SumCheckProof<'a, F: Field> {
     solution: F,
-    polys: Vec<F>,
+    poly: SparsePolynomial<F, SparseTerm>,
+    round_polys: Vec<UnivariatePoly<F>>,
     transcript: &'a [u8],
 }
 
@@ -24,24 +27,39 @@ where
     H: DuplexHash,
     Merlin<H>: FieldWriter<F> + FieldChallenges<F>,
 {
-    let mut prover = ProverState::new(poly);
+    let mut prover = ProverState::new(poly.clone());
     let solution = prover.calculate_sum();
-    let polys = Vec::new();
+    let mut round_polys = Vec::new();
     for _ in 0..prover.total_rounds {
         let poly = prover.calculate_round_poly();
         let commit = poly.evaluate(&F::ZERO) + poly.evaluate(&F::ONE);
         merlin.add_scalars(&[commit]).unwrap();
         let r: [F; 1] = merlin.challenge_scalars().unwrap();
         prover.update_random_vars(r[0]);
+        round_polys.push(poly);
     }
 
     let transcript = merlin.transcript();
-
     SumCheckProof {
         solution,
-        polys,
+        poly,
+        round_polys,
         transcript,
     }
+}
+
+pub fn verify<F, H>(io: IOPattern<H>, proof: SumCheckProof<F>) -> bool
+where
+    F: Field,
+    H: DuplexHash,
+{
+    let transcript = io.to_arthur(&proof.transcript);
+    let mut verifier = VerifierState::<F>::new(proof.solution, proof.poly);
+    assert_eq!(proof.round_polys.len(), verifier.get_total_rounds());
+    for (i, poly) in proof.round_polys.iter().enumerate() {
+        verifier.verify_round_poly(poly.clone());
+    }
+    true
 }
 
 #[cfg(test)]
@@ -79,10 +97,10 @@ mod tests {
     #[test]
     fn test_non_interactive_sumcheck() {
         let poly = setup();
-        let transcript: IOPattern<H> =
-            SumCheckExtensionIOPattern::<F17>::new_sumcheck("➕✅", &poly);
-        let mut merlin = transcript.to_merlin();
+        let io: IOPattern<H> = SumCheckExtensionIOPattern::<F17>::new_sumcheck("➕✅", &poly);
+        let mut merlin = io.to_merlin();
 
-        let _proof = prove(&mut merlin, poly);
+        let proof = prove(&mut merlin, poly);
+        assert!(verify(io, proof));
     }
 }
