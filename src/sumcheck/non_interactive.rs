@@ -7,12 +7,11 @@ use ark_poly::{
     Polynomial,
 };
 use nimue::{
-    plugins::ark::{FieldChallenges, FieldWriter},
+    plugins::ark::{FieldChallenges, FieldReader, FieldWriter},
     DuplexHash, IOPattern, Merlin,
 };
 
 pub struct SumCheckProof<'a, F: Field> {
-    solution: F,
     poly: SparsePolynomial<F, SparseTerm>,
     round_polys: Vec<UnivariatePoly<F>>,
     transcript: &'a [u8],
@@ -28,7 +27,6 @@ where
     Merlin<H>: FieldWriter<F> + FieldChallenges<F>,
 {
     let mut prover = ProverState::new(poly.clone());
-    let solution = prover.calculate_sum();
     let mut round_polys = Vec::new();
     for _ in 0..prover.total_rounds {
         let poly = prover.calculate_round_poly();
@@ -41,7 +39,6 @@ where
 
     let transcript = merlin.transcript();
     SumCheckProof {
-        solution,
         poly,
         round_polys,
         transcript,
@@ -53,11 +50,17 @@ where
     F: Field,
     H: DuplexHash,
 {
-    let transcript = io.to_arthur(&proof.transcript);
-    let mut verifier = VerifierState::<F>::new(proof.solution, proof.poly);
+    let mut arthur = io.to_arthur(proof.transcript);
+    let [solution]: [F; 1] = arthur.next_scalars().unwrap();
+    let mut verifier = VerifierState::<F>::new(solution, proof.poly);
     assert_eq!(proof.round_polys.len(), verifier.get_total_rounds());
-    for (i, poly) in proof.round_polys.iter().enumerate() {
+    for poly in proof.round_polys.iter() {
         verifier.verify_round_poly(poly.clone());
+        let [challenge]: [F; 1] = arthur.challenge_scalars().unwrap();
+        verifier.finish_round(challenge);
+        if verifier.get_actual_rounds() < verifier.get_total_rounds() {
+            let [_sol]: [F; 1] = arthur.next_scalars().unwrap();
+        }
     }
     true
 }

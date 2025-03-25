@@ -5,8 +5,6 @@ use ark_poly::{
     Polynomial,
 };
 
-use rand::Rng;
-
 pub struct VerifierState<F: Field> {
     solution: F,
     poly: SparsePolynomial<F, SparseTerm>,
